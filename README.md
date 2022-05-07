@@ -1,5 +1,6 @@
 # 🎮 pong-pygame
  Game Pong made in Python with Pygame
+ Run main.py to play!
 
 ## Screenshot
 ![image](https://user-images.githubusercontent.com/88206626/167229782-08d271c7-9130-4103-ab1e-4d3b4e009bb3.png)
