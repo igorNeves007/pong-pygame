@@ -126,8 +126,8 @@ def resetBall():
         ballSpeedX *= random.choice((-1, 1))
 
         # Changing ball scale to make game harder
-        ball.width -= 1
-        ball.height -= 1
+        ball.width -= 3
+        ball.height -= 3
 
         scored = True
 
@@ -164,9 +164,9 @@ def points():
     screen.blit(opponentPoints_surface, (380 - opponentPoints_surface.get_width(), 60))
 
     # Choosing winner
-    if playerPoints == 1:
+    if playerPoints == 5:
         victory()
-    if opponentPoints == 1:
+    if opponentPoints == 5:
         defeat()
 
 
@@ -195,7 +195,7 @@ def countDown():
         harder_surface = midiasFont.render("Game will become harder over time!", False, (255, 100, 100))
         screen.blit(harder_surface, (screenWidth / 2 - harder_surface.get_width() / 2, 0))
 
-        pointsNeeded_surface = midiasFont.render("10 points to victory", False, (100, 255, 100))
+        pointsNeeded_surface = midiasFont.render("5 points to victory", False, (100, 255, 100))
         screen.blit(pointsNeeded_surface,
                     (screenWidth / 2 - pointsNeeded_surface.get_width() / 2, harder_surface.get_height()))
 
