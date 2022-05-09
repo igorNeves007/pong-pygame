@@ -3,7 +3,6 @@ import sys
 import random
 import time
 
-
 # Init
 pygame.init()
 pygame.font.init()
@@ -27,6 +26,8 @@ blockY = random.randint(0, screenHeight - 50)
 onMenu = True
 onCountdown = False
 onGame = False
+onVictory = False
+onDefeat = False
 previous = None
 t = 5
 
@@ -87,23 +88,25 @@ def update(dt):
     ball.x += ballSpeedX * dt
     ball.y += ballSpeedY * dt
 
-    # Checking ball collision with screen limits
-    if ball.top < 60 or ball.bottom > 560:
-        ballSpeedY *= -1
+    # Checking ball collision with screen limits and fixing bugs
+    if ball.top < 60:
+        ballSpeedY = abs(ballSpeedY)
+    if ball.bottom > 560:
+        ballSpeedY = -abs(ballSpeedY)
 
     # Checking ball collision with opponent
     if ball.bottom >= opponent.top and ball.top <= opponent.bottom and ball.left <= opponent.right:
         # Impact effect
         delta = ball.centery - opponent.centery
         ballSpeedY = delta * 0.01
-        ballSpeedX *= -1
+        ballSpeedX = abs(ballSpeedX)
 
     # Checking ball collision with player
     if ball.bottom >= player.top and ball.top <= player.bottom and ball.right >= player.left:
         # Impact effect
         delta = ball.centery - player.centery
         ballSpeedY = delta * 0.01
-        ballSpeedX *= -1
+        ballSpeedX = -abs(ballSpeedX)
     points()
     resetBall()
 
@@ -116,13 +119,21 @@ def resetBall():
 
     # Getting ball position
     if ball.x > 720 or ball.x < 60:
+        # Resetting ball position to center
         ball.center = (400, 310)
+
+        # Randomizing ball spawn velocity
         ballSpeedX *= random.choice((-1, 1))
+
+        # Changing ball scale to make game harder
+        ball.width -= 1
+        ball.height -= 1
+
         scored = True
 
 
 def points():
-    global playerPoints, opponentPoints, scored
+    global playerPoints, opponentPoints, scored, onVictory, onDefeat
 
     # Getting ball position
     if ball.x < 60 and scored == True:
@@ -152,6 +163,12 @@ def points():
     screen.blit(playerPoints_surface, (420, 60))
     screen.blit(opponentPoints_surface, (380 - opponentPoints_surface.get_width(), 60))
 
+    # Choosing winner
+    if playerPoints == 1:
+        victory()
+    if opponentPoints == 1:
+        defeat()
+
 
 def mainMenu():
     # Drawing background
@@ -175,16 +192,25 @@ def countDown():
         midiasFont = pygame.font.SysFont('OCR A Extended', 20)
 
         # Surfaces
+        harder_surface = midiasFont.render("Game will become harder over time!", False, (255, 100, 100))
+        screen.blit(harder_surface, (screenWidth / 2 - harder_surface.get_width() / 2, 0))
+
+        pointsNeeded_surface = midiasFont.render("10 points to victory", False, (100, 255, 100))
+        screen.blit(pointsNeeded_surface,
+                    (screenWidth / 2 - pointsNeeded_surface.get_width() / 2, harder_surface.get_height()))
+
         countDownTimer_surface = pointsFont.render(str(t), False, (255, 255, 255))
         screen.blit(countDownTimer_surface, (screenWidth / 2 - countDownTimer_surface.get_width() / 2,
                                              screenHeight / 2 - countDownTimer_surface.get_height() / 2))
-        startingText_surface = TextFont.render("Game Starting in", False, (255, 255, 255))
+        startingText_surface = TextFont.render("Game Starting in:", False, (255, 255, 255))
         screen.blit(startingText_surface, (
-        screenWidth / 2 - startingText_surface.get_width() / 2, screenHeight / 2 - countDownTimer_surface.get_height()))
+            screenWidth / 2 - startingText_surface.get_width() / 2,
+            screenHeight / 2 - countDownTimer_surface.get_height() / 1.5))
         followMe_surface = midiasFont.render("Follow me on:", False, (255, 255, 255))
 
         screen.blit(followMe_surface, (
-        screenWidth / 2 - followMe_surface.get_width() / 2, screenHeight / 2 + countDownTimer_surface.get_height() / 2))
+            screenWidth / 2 - followMe_surface.get_width() / 2,
+            screenHeight / 2 + countDownTimer_surface.get_height() / 2))
 
         # Midias Surfaces
         github_surface = midiasFont.render("Github: igorNeves007", False, (58, 254, 199))
@@ -221,13 +247,25 @@ def countDown():
         print(t)
 
     print("Game Started!")
-    previous = pygame.time.get_ticks()
     onCountdown = False
     onGame = True
+    previous = pygame.time.get_ticks()
+
+
+def victory():
+    global onGame, onVictory
+    onGame = False
+    onVictory = True
+
+
+def defeat():
+    global onGame, onDefeat
+    onGame = False
+    onDefeat = True
 
 
 lag = 0
-FPS = 60
+FPS = 30
 MS_PER_UPDATE = 1000 / FPS
 
 # Main Menu
@@ -260,3 +298,48 @@ while onGame:
         lag -= MS_PER_UPDATE
 
     inputs()
+
+while onVictory:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            pygame.quit()
+            sys.exit()
+
+    screen.fill((0, 0, 0))
+    victoryFont = pygame.font.SysFont('OCR A Extended', 150)
+    infoFont = pygame.font.SysFont('OCR A Extended', 20)
+
+    victorySurface = victoryFont.render("You win", False, (50, 255, 50))
+    screen.blit(victorySurface,
+                (screenWidth / 2 - victorySurface.get_width() / 2, screenHeight / 2 - victorySurface.get_height() / 2))
+
+    infoSurface = infoFont.render("<Click to close>", False, (255, 255, 255))
+    screen.blit(infoSurface,
+                (screenWidth / 2 - infoSurface.get_width() / 2, screenHeight / 2 + victorySurface.get_height()))
+
+    pygame.display.flip()
+
+while onDefeat:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            pygame.quit()
+            sys.exit()
+
+    screen.fill((0, 0, 0))
+    defeatFont = pygame.font.SysFont('OCR A Extended', 150)
+    infoFont = pygame.font.SysFont('OCR A Extended', 20)
+
+    defeatSurface = defeatFont.render("You lose", False, (255, 50, 50))
+    screen.blit(defeatSurface,
+                (screenWidth / 2 - defeatSurface.get_width() / 2, screenHeight / 2 - defeatSurface.get_height() / 2))
+
+    infoSurface = infoFont.render("<Click to close>", False, (255, 255, 255))
+    screen.blit(infoSurface,
+                (screenWidth / 2 - infoSurface.get_width() / 2, screenHeight / 2 + defeatSurface.get_height()))
+    pygame.display.flip()
