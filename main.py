@@ -17,12 +17,7 @@ programIcon = pygame.image.load('icon.png')
 pygame.display.set_icon(programIcon)
 
 # Variables
-ballSpeedX = 0.2
-ballSpeedY = 0.2
-opponentSpeed = 8
 scored = True
-blockX = random.randint(0, screenWidth - 50)
-blockY = random.randint(0, screenHeight - 50)
 onMenu = True
 onCountdown = False
 onGame = False
@@ -31,14 +26,79 @@ onDefeat = False
 previous = None
 t = 5
 
-# Objects
-ball = pygame.Rect(screenWidth / 2 - 15, screenHeight / 2 - 15, 30, 30)
-player = pygame.Rect(695, screenHeight / 2 - 70, 10, 140)
-opponent = pygame.Rect(85, screenHeight / 2 - 70, 10, 140)
-
 # Points variables
 playerPoints = 0
 opponentPoints = 0
+
+
+# Classes
+class Entity:
+    def update(self, dt):
+        pass
+
+
+class Ball(Entity):
+    body = pygame.Rect(screenWidth / 2 - 15, screenHeight / 2 - 15, 30, 30)
+    speedX = 0.1
+    speedY = 0.1
+
+    def update(self, dt):
+        self.body.x = self.body.x + self.speedX * dt
+        self.body.y = self.body.y + self.speedY * dt
+
+        if self.body.top <= 60:
+            self.speedY = abs(self.speedY)
+        if self.body.top > 560:
+            self.speedY = -abs(self.speedY)
+
+        if self.body.left > 720:
+            self.resetBall()
+
+        if self.body.left < 60:
+            self.resetBall()
+
+    def resetBall(self):
+        # Respawn ball
+        self.body.center = (400, 310)
+        self.speedY = random.choice((-1, 1))
+
+        # Resize ball
+        self.body.width -= 3
+        self.body.height -= 3
+
+
+class Player(Entity):
+    body = pygame.Rect(695, screenHeight / 2 - 70, 10, 140)
+
+    def __init__(self, ball):
+        self._ball = ball
+
+    def update(self, dt):
+        if self._ball.body.bottom >= self.body.top and self._ball.body.top <= self.body.bottom and self._ball.body.right >= self.body.left:
+            delta = self._ball.body.centery - self.body.centery
+            self._ball.speedY = delta * 0.01
+            self._ball.speedX *= -1
+
+        (x, y) = pygame.mouse.get_pos()
+        self.body.y = y
+
+
+class Opponent(Entity):
+    body = pygame.Rect(85, screenHeight / 2 - 70, 10, 140)
+    speed = 8
+
+    def __init__(self, ball):
+        self._ball = ball
+
+    def update(self, dt):
+        if self.body.bottom < self._ball.body.y:
+            self.body.bottom += self.speed
+        if self.body.top > self._ball.body.y:
+            self.body.top -= self.speed
+        if self._ball.body.bottom >= self.body.top and self._ball.body.top <= self.body.bottom and self._ball.body.left <= self.body.right:
+            delta = self._ball.body.centery - self.body.centery
+            self._ball.speedY = delta * 0.01
+            self._ball.speedX *= -1
 
 
 def inputs():
@@ -48,26 +108,15 @@ def inputs():
             pygame.quit()
             sys.exit()
 
-    # Controlling player with mouse
-    (x, y) = pygame.mouse.get_pos()
-    if 820 > y > 0:
-        player.y = y
-
-    # Moving opponent
-    if opponent.bottom < ball.y:
-        opponent.bottom += opponentSpeed
-    if opponent.top > ball.y:
-        opponent.top -= opponentSpeed
-
 
 def draw():
     # Draw
     screen.fill((0, 0, 0))
 
     # Draw entities
-    pygame.draw.ellipse(screen, (200, 200, 200), ball)
-    pygame.draw.rect(screen, (200, 200, 200), player)
-    pygame.draw.rect(screen, (200, 200, 200), opponent)
+    pygame.draw.ellipse(screen, (200, 200, 200), Ball.body)
+    pygame.draw.rect(screen, (200, 200, 200), Player.body)
+    pygame.draw.rect(screen, (200, 200, 200), Opponent.body)
 
     # Drawing background
     background = pygame.image.load('oldTv.png')
@@ -81,67 +130,8 @@ def draw():
         dots += 20
 
 
-def update(dt):
-    global ballSpeedX, ballSpeedY
-
-    # Moving ball
-    ball.x += ballSpeedX * dt
-    ball.y += ballSpeedY * dt
-
-    # Checking ball collision with screen limits and fixing bugs
-    if ball.top < 60:
-        ballSpeedY = abs(ballSpeedY)
-    if ball.bottom > 560:
-        ballSpeedY = -abs(ballSpeedY)
-
-    # Checking ball collision with opponent
-    if ball.bottom >= opponent.top and ball.top <= opponent.bottom and ball.left <= opponent.right:
-        # Impact effect
-        delta = ball.centery - opponent.centery
-        ballSpeedY = delta * 0.01
-        ballSpeedX = abs(ballSpeedX)
-
-    # Checking ball collision with player
-    if ball.bottom >= player.top and ball.top <= player.bottom and ball.right >= player.left:
-        # Impact effect
-        delta = ball.centery - player.centery
-        ballSpeedY = delta * 0.01
-        ballSpeedX = -abs(ballSpeedX)
-    points()
-    resetBall()
-
-    # Updating screen as 60 fps
-    pygame.display.flip()
-
-
-def resetBall():
-    global ballSpeedX, ballSpeedY, scored
-
-    # Getting ball position
-    if ball.x > 720 or ball.x < 60:
-        # Resetting ball position to center
-        ball.center = (400, 310)
-
-        # Randomizing ball spawn velocity
-        ballSpeedX *= random.choice((-1, 1))
-
-        # Changing ball scale to make game harder
-        ball.width -= 3
-        ball.height -= 3
-
-        scored = True
-
-
 def points():
     global playerPoints, opponentPoints, scored, onVictory, onDefeat
-
-    # Getting ball position
-    if ball.x < 60 and scored == True:
-        playerPoints += 1
-        scored = False
-    if ball.x > 720 and scored == True:
-        opponentPoints += 1
-        scored = False
 
     # Selecting Fonts
     usersFont = pygame.font.SysFont('OCR A Extended', 20)
@@ -264,6 +254,15 @@ def defeat():
     onDefeat = True
 
 
+# Objects
+entities = []
+ball = Ball()
+entities.append(ball)
+player = Player(ball)
+entities.append(player)
+opponent = Opponent(ball)
+entities.append(opponent)
+
 lag = 0
 FPS = 30
 MS_PER_UPDATE = 1000 / FPS
@@ -294,7 +293,9 @@ while onGame:
     draw()
 
     while lag >= MS_PER_UPDATE:
-        update(MS_PER_UPDATE)
+        for e in entities:
+            e.update(MS_PER_UPDATE)
+            pygame.display.flip()
         lag -= MS_PER_UPDATE
 
     inputs()
